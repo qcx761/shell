@@ -127,7 +127,7 @@ void handle_redirection(char *cmd) {
             return;
         }
         dup2(fd, STDOUT_FILENO);
-        close(fd);
+        close(fd); 
     }
 }
 
