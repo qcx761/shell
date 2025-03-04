@@ -188,3 +188,120 @@ int main() {
 
     return 0;
 }
+
+
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX_CMD 100
+#define MAX_ARG 10
+
+void execute_command(char *cmd) {
+    char *args[MAX_ARG];
+    char *token;
+    int i = 0;
+    
+    // 分割命令和参数
+    token = strtok(cmd, " ");
+    while (token != NULL) {
+        args[i++] = token;
+        token = strtok(NULL, " ");
+    }
+    args[i] = NULL;
+
+    // 检查重定向
+    for (i = 0; args[i] != NULL; i++) {
+        if (strcmp(args[i], ">") == 0) {
+            int fd = open(args[i + 1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+            args[i] = NULL; // 终止命令
+        } else if (strcmp(args[i], ">>") == 0) {
+            int fd = open(args[i + 1], O_WRONLY | O_CREAT | O_APPEND, 0644);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+            args[i] = NULL; // 终止命令
+        } else if (strcmp(args[i], "<") == 0) {
+            int fd = open(args[i + 1], O_RDONLY);
+            dup2(fd, STDIN_FILENO);
+            close(fd);
+            args[i] = NULL; // 终止命令
+        }
+    }
+
+    // 执行命令
+    execvp(args[0], args);
+    perror("exec failed");
+    exit(1);
+}
+
+void handle_pipeline(char *input) {
+    char *cmds[MAX_CMD];
+    char *token;
+    int i = 0;
+
+    // 分割管道命令
+    token = strtok(input, "|");
+    while (token != NULL) {
+        cmds[i++] = token;
+        token = strtok(NULL, "|");
+    }
+    cmds[i] = NULL;
+
+    int fd[2];
+    int prev_fd = -1;
+
+    for (int j = 0; cmds[j] != NULL; j++) {
+        if (pipe(fd) == -1) {
+            perror("pipe failed");
+            exit(1);
+        }
+
+        if (fork() == 0) { // 子进程
+            if (prev_fd != -1) {
+                dup2(prev_fd, STDIN_FILENO); // 从前一个命令读取
+                close(prev_fd);
+            }
+            if (cmds[j + 1] != NULL) {
+                dup2(fd[1], STDOUT_FILENO); // 写入管道
+            }
+            close(fd[0]); // 关闭读端
+            execute_command(cmds[j]);
+        } else { // 父进程
+            close(fd[1]); // 关闭写端
+            if (prev_fd != -1) {
+                close(prev_fd);
+            }
+            prev_fd = fd[0]; // 保存读端用于下一个命令
+        }
+    }
+
+    // 等待所有子进程完成
+    while (wait(NULL) > 0);
+}
+
+int main() {
+    char input[256];
+
+    while (1) {
+        printf("OpenAI-super-shell> ");
+        if (fgets(input, sizeof(input), stdin) == NULL) {
+            break; // 处理 EOF
+        }
+
+        // 去除换行符
+        input[strcspn(input, "\n")] = 0;
+
+        handle_pipeline(input);
+    }
+
+    return 0;
+}
