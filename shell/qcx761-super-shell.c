@@ -10,9 +10,9 @@
 #define MAX_ARG_LEN 100
 
 void ignore_sigint();  // 忽略 Ctrl+C
-void excute_pipeline(); //管道处理
-void excute_command();  // 单指令处理
-void change_directory(); // cd命令实现
+void excute_pipeline(char *command); //管道处理
+void excute_command(char *command);  // 单指令处理
+void change_directory(char *path); // cd命令实现
 
 
 
@@ -77,7 +77,7 @@ void excute_command(char *command){
     }
 }
 
-void excute_pipeline(){
+void excute_pipeline(char *command){
 
 
 
