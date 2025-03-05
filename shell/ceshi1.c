@@ -16,6 +16,5 @@ int main() {
         wait(NULL);
         printf("Child process completed.\n");
     }
-
     return 0;
 }
