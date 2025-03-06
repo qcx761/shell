@@ -115,7 +115,7 @@ void excute_pipeline(char *command){
 
 
 
-    
+
 // 管道实现
 
 
@@ -129,7 +129,7 @@ int main(){
     ignore_sigint();  // 调用函数以忽略 SIGINT
     char command[MAX_CMD_LEN];
     while(1){
-        printf("Enter command: "); // 提示用户输入
+        printf("Command: "); // 提示用户输入
         if(!fgets(command,sizeof(command),stdin)) break;
         command[strcspn(command,"\n")]='\0';  // 除去末尾换行符
         for(int i=0;i<sizeof(command);i++){
