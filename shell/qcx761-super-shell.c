@@ -164,7 +164,6 @@ void excute_pipeline(char *command){
 return ;
 }
 
-
 int main(){
     ignore_sigint();  // 调用函数以忽略 SIGINT
     char command[MAX_CMD_LEN];
