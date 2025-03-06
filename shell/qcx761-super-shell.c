@@ -11,13 +11,10 @@
 
 static char *previous_directory=NULL; // 静态变量存储上一个目录
 
-
 void ignore_sigint();  // 忽略 Ctrl+C
 void excute_pipeline(char *command); //管道处理
 void excute_command(char *command);  // 单指令处理
 void change_directory(char *path); // cd命令实现
-// void redirect_io(char *input_file, char *output_file); // 输入输出重定向
-
 
 void ignore_sigint(){
     signal(SIGINT,SIG_IGN);  
@@ -45,121 +42,85 @@ void change_directory(char *path) {
     }
 }
 
-// 输入输出重定向
-// void redirect_io(char *input_file, char *output_file) {
-//     // 输入重定向
-//     if (input_file != NULL) {
-//         int fd_in = open(input_file, O_RDONLY);
-//         if (fd_in < 0) {
-//             perror("open input file failed");
-//             exit(1);
-//         }
-//         dup2(fd_in, STDIN_FILENO); // 将标准输入重定向到输入文件
-//         close(fd_in);
-//     }
-
-//     // 输出重定向
-//     if (output_file != NULL) {
-//         int fd_out = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-//         if (fd_out < 0) {
-//             perror("open output file failed");
-//             exit(1);
-//         }
-//         dup2(fd_out, STDOUT_FILENO); // 将标准输出重定向到输出文件
-//         close(fd_out);
-//     }
-// }
-
-
-
-
 void excute_command(char *command){
-
-    // char *input_file = NULL;    // 声明输入文件变量
-    // char *output_file = NULL;   // 声明输出文件变量
-
     int background=0;  // 检查命令是否以‘&’结尾
     if(command[strlen(command)-1]=='&'){
         background=1; // 标记为后台运行
         command[strlen(command)-1]='\0'; // 去掉'&'
     }
-
     // 内置命令实现
-    // 检查是否是cd命令
     if(strncmp(command,"cd",2)==0){
         char *path=strtok(command+3," "); // 获取路径
         change_directory(path);
-        return; // 直接返回，不执行execvp
+        return; // 直接返回，不执行 execvp
     }
 
-    // 检查是否是 exit 命令
     if(strcmp(command,"exit")==0){
         exit(0); // 退出 shell
     }
 
+    // 处理输出重定向
+    char *output_file=NULL;
+    char *redirect_pos=strstr(command,">>");
+    if(!redirect_pos){
+        redirect_pos=strstr(command,">");
+    }
 
-    // // 处理重定向
-    // char *token = strtok(command, "<>");
-    // if (token != NULL) {
-    //     // 保存命令
-    //     strcpy(command, token);
-    //     token = strtok(NULL, "<>");
-    //     if (token != NULL) {
-    //         input_file = strtok(token, " "); // 获取输入文件
-    //     }
-    //     token = strtok(NULL, "<>");
-    //     if (token != NULL) {
-    //         output_file = strtok(token, " "); // 获取输出文件
-    //     }
-    // }
+    if(redirect_pos){
+        *redirect_pos='\0'; // 将命令分割为两部分
+        output_file=strtok(redirect_pos+2," "); // 获取文件名
+    }
 
     pid_t pid=fork();
     if(pid<0){
         perror("fork fail");
-        return ;
-    }
-    else if(pid==0){  // 子进程
-        //redirect_io(input_file, output_file); // 处理重定向
-
-
-
-
-
-    char *args[MAX_CMD_LEN/2+1]; // 存储命令及参数
-    char *token=strtok(command," ");
-    int i=0;
-    while(token!=NULL){
-        args[i++]=token;
-        token=strtok(NULL," ");
-    }
-    args[i]=NULL; // 以 NULL 结尾
-    execvp(args[0],args); // 执行命令
-    perror("exec failed"); // 如果 exec 失败
-    exit(1); // 退出子进程
-
-
-
-
-
-
-    }
-    else{  // 父进程
-        if(background==1){
-            printf("[Running in background] PID:%d\n",pid);
+        return;
+    }else if(pid==0){  // 子进程
+        if(output_file){
+            int fd;
+            if(strstr(command,">>")){
+                fd=open(output_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+            }else{
+                fd=open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            }
+            if(fd<0){
+                perror("open failed");
+                exit(1);
+            }
+            dup2(fd,STDOUT_FILENO); // 重定向标准输出到文件
+            close(fd); // 关闭不再需要的文件描述符
         }
-        else{
+        char *args[MAX_CMD_LEN/2+1]; // 存储命令及参数
+        char *token=strtok(command," ");
+        int i=0;
+        while(token!=NULL) {
+            args[i++]=token;
+            token=strtok(NULL," ");
+        }
+        args[i]=NULL; // 以 NULL 结尾
+        execvp(args[0],args); // 执行命令
+        perror("exec failed"); // 如果 exec 失败
+        exit(1); // 退出子进程
+    }else{  // 父进程
+        if(background==1){
+            printf("[Running in background] PID:%d\n", pid);
+        }else{
             wait(NULL);
         }
     }
 }
 
-
-
-
-
 void excute_pipeline(char *command){
 
+
+
+
+    
 // 管道实现
+
+
+
+
 
 return ;
 }
