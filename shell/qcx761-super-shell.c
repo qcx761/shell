@@ -23,16 +23,25 @@ void ignore_sigint(){
     signal(SIGINT,SIG_IGN);  
 }
 
-// cd -没有？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？/上次目录
-void change_directory(char *path){
-    previous_directory=path;
+void change_directory(char *path) {
+    char *current_directory=getcwd(NULL,0); // 获取当前工作目录(动态分配内存，需要释放)
     if(path==NULL||strcmp(path,"")==0||strcmp(path,"~")==0){
         path=getenv("HOME"); // 切换到用户主目录
     }else if(strcmp(path,"-")==0){
-        path=previous_directory; // 切换到上级目录
+        if(previous_directory!=NULL){
+            path=previous_directory; // 切换到上一个目录
+        }else{
+            fprintf(stderr,"No previous directory.\n");
+            free(current_directory); // 释放内存
+            return; // 如果没有上一个目录，则返回
+        }
     }
-    if(chdir(path)!=0){  // 切换目录
-        perror("cd failed");
+    // 切换目录
+    if(chdir(path)==0){
+        free(previous_directory); // 释放之前的内存
+        previous_directory = current_directory; // 更新上一个目录
+    }else{
+        perror("cd failed"); // 如果失败，打印错误信息
     }
 }
 
