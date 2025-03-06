@@ -9,6 +9,9 @@
 #define MAX_CMD_LEN 1024
 #define MAX_ARG_LEN 100
 
+static char *previous_directory=NULL; // 静态变量存储上一个目录
+
+
 void ignore_sigint();  // 忽略 Ctrl+C
 void excute_pipeline(char *command); //管道处理
 void excute_command(char *command);  // 单指令处理
@@ -18,6 +21,19 @@ void change_directory(char *path); // cd命令实现
 
 void ignore_sigint(){
     signal(SIGINT,SIG_IGN);  
+}
+
+// cd -没有？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？/上次目录
+void change_directory(char *path){
+    previous_directory=path;
+    if(path==NULL||strcmp(path,"")==0||strcmp(path,"~")==0){
+        path=getenv("HOME"); // 切换到用户主目录
+    }else if(strcmp(path,"-")==0){
+        path=previous_directory; // 切换到上级目录
+    }
+    if(chdir(path)!=0){  // 切换目录
+        perror("cd failed");
+    }
 }
 
 // 输入输出重定向
@@ -46,16 +62,7 @@ void ignore_sigint(){
 // }
 
 
-void change_directory(char *path){
-    if(path==NULL||strcmp(path,"")==0||strcmp(path,"~")==0){
-        path=getenv("HOME"); // 切换到用户主目录
-    }else if(strcmp(path,"-")==0){
-        path=".."; // 切换到上级目录
-    }
-    if(chdir(path)!=0){  // 切换目录
-        perror("cd failed");
-    }
-}
+
 
 void excute_command(char *command){
 
@@ -68,11 +75,12 @@ void excute_command(char *command){
         command[strlen(command)-1]='\0'; // 去掉'&'
     }
 
-    // 检查是否是 cd 命令
+    // 内置命令实现
+    // 检查是否是cd命令
     if(strncmp(command,"cd",2)==0){
         char *path=strtok(command+3," "); // 获取路径
         change_directory(path);
-        return; // 直接返回，不执行 execvp
+        return; // 直接返回，不执行execvp
     }
 
     // 检查是否是 exit 命令
@@ -124,8 +132,6 @@ void excute_command(char *command){
 
 
 
-//输入输出定向没实现
-
 
     }
     else{  // 父进程
@@ -139,10 +145,14 @@ void excute_command(char *command){
 }
 
 
+
+
+
 void excute_pipeline(char *command){
 
-return ;
+// 管道实现
 
+return ;
 }
 
 
