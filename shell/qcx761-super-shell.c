@@ -199,14 +199,14 @@ void excute_pipeline(char *command) {
                     // 输出重定向
                     arg_token=strtok(NULL," ");
                     if(arg_token==NULL) break; // 没有提供文件名
-                    int fd = open(arg_token, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    if (fd < 0) {
+                    int fd=open(arg_token, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (fd<0){
                         perror("open output file failed");
                         exit(1);
                     }
                     dup2(fd, STDOUT_FILENO);
                     close(fd);
-                } else if (strcmp(arg_token, ">>") == 0) {
+                } else if(strcmp(arg_token,">>")==0){
                     // 追加重定向
                     arg_token=strtok(NULL," ");
                     if (arg_token==NULL) break; // 没有提供文件名
