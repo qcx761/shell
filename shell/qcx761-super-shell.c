@@ -59,7 +59,7 @@ void excute_command(char *command){
         exit(0); // 退出 shell
     }
 
-    int k=0;// 区分是>>还是>
+    int k=0; // 区分是'>>'还是'>'
     // 处理输出重定向
     char *output_file=NULL;
     char *redirect_pos=strstr(command,">>");
