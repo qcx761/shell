@@ -59,11 +59,13 @@ void excute_command(char *command){
         exit(0); // 退出 shell
     }
 
+    int k=0;// 区分是>>还是>
     // 处理输出重定向
     char *output_file=NULL;
     char *redirect_pos=strstr(command,">>");
     if(!redirect_pos){
         redirect_pos=strstr(command,">");
+        k=1;
     }
 
     // 处理输入重定向
@@ -72,7 +74,12 @@ void excute_command(char *command){
 
     if(redirect_pos){
         *redirect_pos='\0'; // 将命令分割为两部分
+        if(k==1){
         output_file=strtok(redirect_pos+2," "); // 获取文件名
+        }
+        if(k==0){
+        output_file=strtok(redirect_pos+3," "); // 获取文件名
+        }
     }
 
     if(input_redirect_pos){
@@ -97,9 +104,10 @@ void excute_command(char *command){
         }
         if(output_file){
             int fd;
-            if(strstr(command,">>")){
+            if(k==0){
                 fd=open(output_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
-            }else{
+            }
+            if(k==1){
                 fd=open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
             }
             if(fd<0){
@@ -239,7 +247,6 @@ void excute_pipeline(char *command) {
         wait(NULL);
     }
 }
-
 
 int main(){
     ignore_sigint();  // 调用函数以忽略 SIGINT
