@@ -36,9 +36,9 @@ void change_directory(char *path) {
     // 切换目录
     if(chdir(path)==0){
         free(previous_directory); // 释放之前的内存
-        previous_directory = current_directory; // 更新上一个目录
+        previous_directory=current_directory; // 更新上一个目录
     }else{
-        perror("cd failed"); // 如果失败，打印错误信息
+        perror("cd fail"); // 如果失败，打印错误信息
     }
 }
 
@@ -59,6 +59,7 @@ void excute_command(char *command){
         exit(0); // 退出 shell
     }
 
+
     // 处理输出重定向
     char *output_file=NULL;
     char *redirect_pos=strstr(command,">>");
@@ -66,9 +67,18 @@ void excute_command(char *command){
         redirect_pos=strstr(command,">");
     }
 
+    // 处理输入重定向
+    char *input_file=NULL;
+    char *input_redirect_pos=strstr(command,"<");
+
     if(redirect_pos){
         *redirect_pos='\0'; // 将命令分割为两部分
         output_file=strtok(redirect_pos+2," "); // 获取文件名
+    }
+
+    if(input_redirect_pos){
+        *input_redirect_pos='\0';
+        input_file=strtok(input_redirect_pos+2," ");
     }
 
     pid_t pid=fork();
@@ -76,6 +86,15 @@ void excute_command(char *command){
         perror("fork fail");
         return;
     }else if(pid==0){  // 子进程
+        if(input_file){
+            int fd=open(input_file,O_RDONLY);
+            if(fd<0){
+                perror("open failed");
+                exit(1);
+            }
+            dup2(fd,STDIN_FILENO);
+            close(fd);
+        }
         if(output_file){
             int fd;
             if(strstr(command,">>")){
@@ -110,76 +129,122 @@ void excute_command(char *command){
     }
 }
 
-void excute_pipeline(char *command){
+
+
+
+
+void excute_pipeline(char *command) {
     char *commands[MAX_ARG_LEN]; // 存储各个命令
-    int num_commands=0;
+    int num_commands = 0;
 
     // 分割命令
-    char *token=strtok(command,"|");
-    while(token!=NULL){
-        commands[num_commands++]=token; // 将命令存入数组
-        token=strtok(NULL,"|");
+    char *token = strtok(command, "|");
+    while (token != NULL) {
+        commands[num_commands++] = token; // 将命令存入数组
+        token = strtok(NULL, "|");
     }
 
     int pipes[num_commands - 1][2]; // 管道数组
 
     // 创建管道
-    for (int i=0;i<num_commands-1;i++){
-        if(pipe(pipes[i])<0){
+    for (int i = 0; i < num_commands - 1; i++) {
+        if (pipe(pipes[i]) < 0) {
             perror("pipe failed");
             exit(1);
         }
     }
 
     // 创建子进程
-    for(int i=0;i<num_commands;i++){
-        pid_t pid=fork();
-        if(pid<0){
+    for (int i = 0; i < num_commands; i++) {
+        pid_t pid = fork();
+        if (pid < 0) {
             perror("fork failed");
             exit(1);
-        }else if(pid==0){ // 子进程
-            // 如果不是第一个命令，则重定向输入
-            if(i>0){
-                dup2(pipes[i-1][0],STDIN_FILENO); // 从前一个管道读取
-            }
-            // 如果不是最后一个命令，则重定向输出
-            if(i<num_commands-1){
-                dup2(pipes[i][1],STDOUT_FILENO); // 向当前管道写入
+        } else if (pid == 0) { // 子进程
+            // 重定向输入
+            if (i > 0) {
+                dup2(pipes[i - 1][0], STDIN_FILENO); // 从前一个管道读取
             }
 
+            // 重定向输出
+            if (i < num_commands - 1) {
+                dup2(pipes[i][1], STDOUT_FILENO); // 向当前管道写入
+            }
+
+            // 处理输入输出重定向
+            char *args[MAX_CMD_LEN / 2 + 1];
+            char *arg_token = strtok(commands[i], " ");
+            int arg_index = 0;
+
+            // 处理重定向符号
+            while (arg_token != NULL) {
+                if (strcmp(arg_token, "<") == 0) {
+                    // 输入重定向
+                    arg_token = strtok(NULL, " ");
+                    if (arg_token == NULL) break; // 没有提供文件名
+                    int fd = open(arg_token, O_RDONLY);
+                    if (fd < 0) {
+                        perror("open input file failed");
+                        exit(1);
+                    }
+                    dup2(fd, STDIN_FILENO);
+                    close(fd);
+                } else if (strcmp(arg_token, ">") == 0) {
+                    // 输出重定向
+                    arg_token = strtok(NULL, " ");
+                    if (arg_token == NULL) break; // 没有提供文件名
+                    int fd = open(arg_token, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                    if (fd < 0) {
+                        perror("open output file failed");
+                        exit(1);
+                    }
+                    dup2(fd, STDOUT_FILENO);
+                    close(fd);
+                } else if (strcmp(arg_token, ">>") == 0) {
+                    // 追加重定向
+                    arg_token = strtok(NULL, " ");
+                    if (arg_token == NULL) break; // 没有提供文件名
+                    int fd = open(arg_token, O_WRONLY | O_CREAT | O_APPEND, 0644);
+                    if (fd < 0) {
+                        perror("open output file failed");
+                        exit(1);
+                    }
+                    dup2(fd, STDOUT_FILENO);
+                    close(fd);
+                } else {
+                    args[arg_index++] = arg_token; // 存储命令参数
+                }
+                arg_token = strtok(NULL, " ");
+            }
+            args[arg_index] = NULL; // 以 NULL 结尾
+
             // 关闭所有管道的文件描述符
-            for(int j=0;j<num_commands-1;j++){
+            for (int j = 0; j < num_commands - 1; j++) {
                 close(pipes[j][0]);
                 close(pipes[j][1]);
             }
 
-            // 解析命令参数
-            char *args[MAX_CMD_LEN/2+1];
-            char *arg_token=strtok(commands[i]," ");
-            int arg_index=0;
-            while(arg_token!=NULL){
-                args[arg_index++]=arg_token;
-                arg_token=strtok(NULL," ");
-            }
-            args[arg_index]=NULL; // 以 NULL 结尾
-
-            execvp(args[0],args); // 执行命令
+            execvp(args[0], args); // 执行命令
             perror("exec failed"); // 如果 exec 失败
             exit(1); // 退出子进程
         }
     }
 
     // 父进程关闭所有管道
-    for (int i=0;i<num_commands-1;i++){
+    for (int i = 0; i < num_commands - 1; i++) {
         close(pipes[i][0]); // 关闭读端
         close(pipes[i][1]); // 关闭写端
     }
 
     // 等待所有子进程
-    for(int i=0;i<num_commands;i++){
+    for (int i = 0; i < num_commands; i++) {
         wait(NULL);
     }
 }
+
+
+
+
 
 int main(){
     ignore_sigint();  // 调用函数以忽略 SIGINT
