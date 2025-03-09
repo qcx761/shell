@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
 static char *previous_directory = NULL; // 静态变量存储上一个目录
 
 void change_directory(char *path) {
