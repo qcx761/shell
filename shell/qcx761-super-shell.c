@@ -6,7 +6,7 @@
 #include<signal.h>
 #include<fcntl.h>
 
-#define MAX_CMD_LEN 1024
+#define MAX_CMD_LEN 1000000
 #define MAX_ARG_LEN 100
 
 static char *previous_directory=NULL; // 静态变量存储上一个目录
