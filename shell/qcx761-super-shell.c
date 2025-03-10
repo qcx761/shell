@@ -6,7 +6,7 @@
 #include<signal.h>
 #include<fcntl.h>
 
-#define MAX_CMD_LEN 1000000
+#define MAX_CMD_LEN 1024
 #define MAX_ARG_LEN 100
 
 static char *previous_directory=NULL; // 静态变量存储上一个目录
@@ -250,9 +250,9 @@ void excute_pipeline(char *command){
 
 int main(){
     ignore_sigint();  // 调用函数以忽略 SIGINT
-    int m=0;
     char command[MAX_CMD_LEN];
     while(1){
+        int m=0;
         printf("Command: "); // 提示用户输入
         if(!fgets(command,sizeof(command),stdin)){
             break;
@@ -260,8 +260,8 @@ int main(){
         command[strcspn(command,"\n")]='\0';  // 除去末尾换行符
         for(int i=0;i<sizeof(command);i++){
             if(command[i]=='|'){
-                excute_pipeline(command);
                 m=1;
+                excute_pipeline(command);
                 break;
             }
         }
