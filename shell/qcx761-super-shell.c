@@ -12,7 +12,7 @@
 static char *previous_directory=NULL; // 静态变量存储上一个目录
 
 void ignore_sigint();  // 忽略 Ctrl+C
-void excute_pipeline(char *command); //管道处理
+void excute_pipeline(char *command); // 管道处理
 void excute_command(char *command);  // 单指令处理
 void change_directory(char *path); // cd命令实现
 
@@ -38,7 +38,7 @@ void change_directory(char *path) {
         free(previous_directory); // 释放之前的内存
         previous_directory=current_directory; // 更新上一个目录
     }else{
-        perror("cd fail"); // 如果失败，打印错误信息
+        perror("cd failed"); // 如果失败，打印错误信息
     }
 }
 
@@ -137,7 +137,7 @@ void excute_command(char *command){
     }
 }
 
-void excute_pipeline(char *command) {
+void excute_pipeline(char *command){
     char *commands[MAX_ARG_LEN]; // 存储各个命令
     int num_commands=0;
 
@@ -169,12 +169,12 @@ void excute_pipeline(char *command) {
 
             // 重定向输入
             if(i>0){
-                dup2(pipes[i-1][0],STDIN_FILENO); // 从前一个管道读取
+                dup2(pipes[i-1][0],STDIN_FILENO); // 如果当前命令不是第一个命令，重定向标准输入从前一个管道读入。
             }
 
             // 重定向输出
             if(i<num_commands-1){
-                dup2(pipes[i][1],STDOUT_FILENO); // 向当前管道写入
+                dup2(pipes[i][1],STDOUT_FILENO); // 如果当前命令不是最后一个命令，重定向标准输出到当前管道。
             }
 
             // 处理输入输出重定向
@@ -200,13 +200,13 @@ void excute_pipeline(char *command) {
                     arg_token=strtok(NULL," ");
                     if(arg_token==NULL) break; // 没有提供文件名
                     int fd=open(arg_token, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-                    if (fd<0){
+                    if(fd<0){
                         perror("open output file failed");
                         exit(1);
                     }
                     dup2(fd, STDOUT_FILENO);
                     close(fd);
-                } else if(strcmp(arg_token,">>")==0){
+                }else if(strcmp(arg_token,">>")==0){
                     // 追加重定向
                     arg_token=strtok(NULL," ");
                     if (arg_token==NULL) break; // 没有提供文件名
