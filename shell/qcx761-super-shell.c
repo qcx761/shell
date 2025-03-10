@@ -253,7 +253,7 @@ int main(){
     char command[MAX_CMD_LEN];
     while(1){
         int m=0;
-        printf("Command: "); // 提示用户输入
+        printf("Command[%s]: ",getcwd(NULL,0)); // 提示用户输入
         if(!fgets(command,sizeof(command),stdin)){
             break;
         }
