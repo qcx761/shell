@@ -258,7 +258,7 @@ int main(){
             break;
         }
         command[strcspn(command,"\n")]='\0';  // 除去末尾换行符
-        for(int i=0;i<sizeof(command);i++){
+        for(int i=0;command[i]!='\0';i++){
             if(command[i]=='|'){
                 m=1;
                 excute_pipeline(command);
